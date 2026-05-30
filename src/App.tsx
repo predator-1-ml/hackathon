@@ -2,6 +2,7 @@ import React from 'react'
 import { Sidebar } from './components/Sidebar'
 import { Dashboard } from './components/Dashboard'
 import { FocusMode } from './components/FocusMode'
+import { HabitMastery } from './components/HabitMastery'
 import { NameEntry } from './components/NameEntry'
 import { useAppContext } from './context/AppContext'
 import { motion } from 'framer-motion'
@@ -15,6 +16,8 @@ function App() {
         return <Dashboard />;
       case 'focus':
         return <FocusMode />;
+      case 'habits':
+        return <HabitMastery />;
       default:
         return <Dashboard />;
     }

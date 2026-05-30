@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { Send, Mic } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface ChatResponse {
   text: string;
@@ -99,19 +100,60 @@ const generateResponse = (input: string, state: ReturnType<typeof useAppContext>
   };
 };
 
-export const ChatInput: React.FC = () => {
+export const ChatInput: React.FC<{ onAnalysis?: (transcript: string, updates: any, responseText: string, responseType: string) => void }> = ({ onAnalysis }) => {
   const context = useAppContext();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  const startSpeechRecognition = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser. Try Chrome.");
+      return;
+    }
 
-    const userInput = input.trim();
-    setInput('');
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsVoiceMode(true);
+      setInput('');
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+      setIsVoiceMode(false);
+      
+      // DEEP THINKING: Introduce a 3-second delay after user stops speaking
+      setIsThinking(true);
+      setTimeout(() => {
+        handleCommand(transcript);
+        setIsThinking(false);
+      }, 3000);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsVoiceMode(false);
+      setIsThinking(false);
+    };
+
+    recognition.onend = () => {
+      setIsVoiceMode(false);
+    };
+
+    recognition.start();
+  };
+
+  const handleCommand = async (userInput: string) => {
+    if (!userInput.trim() || isLoading) return;
+
     setIsLoading(true);
-
     try {
       const response = await fetch('http://localhost:3001/api/coach', {
         method: 'POST',
@@ -130,50 +172,100 @@ export const ChatInput: React.FC = () => {
       if (!response.ok) throw new Error('Backend failed');
 
       const data = await response.json();
-      context.addCoachMessage({ 
-        text: data.text, 
-        type: data.type || 'suggestion' 
-      });
+      
+      if (onAnalysis && data.updates) {
+        onAnalysis(userInput, data.updates, data.text, data.type || 'suggestion');
+      } else {
+        if (data.updates) {
+          context.processAgentCommand(data.updates);
+        }
+
+        context.addCoachMessage({ 
+          text: data.text, 
+          type: data.type || 'suggestion' 
+        });
+      }
     } catch (error) {
       console.error('Chat error:', error);
-      // Fallback to local logic if backend is down
       const fallback = generateResponse(userInput, context);
       const coachMessageType: 'suggestion' | 'affirmation' | 'check-in' = 
         fallback.type === 'response' ? 'check-in' : fallback.type;
       context.addCoachMessage({ text: fallback.text, type: coachMessageType });
     } finally {
       setIsLoading(false);
+      setInput('');
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleCommand(input);
+  };
+
   return (
-    <div className="space-y-3">
-      <form onSubmit={handleSubmit} className="relative">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={isLoading ? "Coach is thinking..." : "Ask your coach anything..."}
-          disabled={isLoading}
-          className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-sm disabled:opacity-50"
-        />
-        <button
-          type="submit"
-          disabled={!input.trim() || isLoading}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:bg-slate-300 transition-colors"
-        >
-          <Send className={`w-4 h-4 ${isLoading ? 'animate-pulse' : ''}`} />
-        </button>
-      </form>
-      <div className="flex gap-2">
-        {['How am I doing?', "I'm tired", 'Give me a tip'].map((phrase) => (
+    <div className="space-y-6">
+      <div className="relative group">
+        <div className={`absolute -inset-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 ${isLoading || isVoiceMode || isThinking ? 'opacity-60 animate-pulse' : ''}`}></div>
+        <form onSubmit={handleSubmit} className="relative flex items-center bg-white/80 backdrop-blur-xl rounded-[2rem] border border-white shadow-2xl overflow-hidden p-2">
           <button
-            key={phrase}
-            onClick={() => setInput(phrase)}
-            disabled={isLoading}
-            className="text-xs px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition-colors disabled:opacity-50"
+            type="button"
+            onClick={startSpeechRecognition}
+            className={`p-5 rounded-2xl transition-all ${isVoiceMode ? 'text-rose-500 bg-rose-50 scale-110 shadow-inner' : isThinking ? 'text-amber-500 bg-amber-50 animate-pulse' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-50'}`}
           >
-            {phrase}
+            <Mic className={`w-6 h-6 ${isVoiceMode ? 'animate-pulse' : ''}`} />
+          </button>
+          
+          <div className="flex-1 flex items-center px-4 overflow-hidden">
+            {isThinking ? (
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-black text-slate-400 italic truncate max-w-[200px]">"{input}"</span>
+                <div className="flex gap-1">
+                  {[0, 1, 2].map(i => (
+                    <motion.div
+                      key={i}
+                      animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                      className="w-1.5 h-1.5 bg-indigo-500 rounded-full"
+                    />
+                  ))}
+                </div>
+                <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest ml-2">Deep Thinking</span>
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={isLoading ? "Deconstructing intent..." : isVoiceMode ? "Listening carefully..." : "Tell your coach what's on your mind..."}
+                disabled={isLoading}
+                className="w-full py-6 bg-transparent focus:outline-none text-lg font-bold text-slate-800 placeholder:text-slate-300 placeholder:font-medium"
+              />
+            )}
+          </div>
+          
+          <button
+            type="submit"
+            disabled={!input.trim() || isLoading || isThinking}
+            className="p-5 text-indigo-600 hover:text-indigo-700 disabled:opacity-30 disabled:text-slate-300 transition-all transform active:scale-90"
+          >
+            <Send className={`w-6 h-6 ${isLoading ? 'animate-pulse' : ''}`} />
+          </button>
+        </form>
+      </div>
+
+      <div className="flex flex-wrap justify-center gap-3">
+        {[
+          { label: "Check-in", text: "I'm feeling low energy today" },
+          { label: "New Habit", text: "Remind me to read every evening" },
+          { label: "Task Done", text: "I finished my coding work" }
+        ].map((item) => (
+          <button
+            key={item.label}
+            onClick={() => { setInput(item.text); }}
+            disabled={isLoading}
+            className="text-[10px] font-black uppercase tracking-widest px-6 py-3 bg-white/50 text-slate-500 rounded-2xl hover:bg-white hover:text-indigo-600 border border-slate-100 shadow-sm transition-all active:scale-95"
+          >
+            {item.label}
           </button>
         ))}
       </div>

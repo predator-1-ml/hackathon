@@ -22,8 +22,18 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-64 bg-white/40 backdrop-blur-xl border-r border-slate-200/50 flex flex-col h-screen sticky top-0 z-40">
-      <div className="p-8">
+    <aside className="w-64 bg-white/40 backdrop-blur-xl border-r border-slate-200/50 flex flex-col h-screen sticky top-0 z-40 relative overflow-hidden">
+      {/* Sidebar Background SVG Decor */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-[0.05] z-0">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <pattern id="sidebar-pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1" fill="currentColor" />
+          </pattern>
+          <rect width="100%" height="100%" fill="url(#sidebar-pattern)" />
+        </svg>
+      </div>
+
+      <div className="p-8 relative z-10">
         <div className="flex items-center gap-3 mb-12">
           <div className="p-2 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-200/50">
             <Bot className="w-5 h-5 text-white" />

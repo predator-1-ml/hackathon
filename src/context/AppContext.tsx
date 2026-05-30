@@ -14,6 +14,7 @@ interface AppContextType extends AppState {
   updateUser: (user: Partial<AppState['user']>) => void;
   setActiveView: (view: AppState['activeView']) => void;
   clearState: () => void;
+  processAgentCommand: (command: any) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -102,6 +103,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     }
   }, [state.intentions, state.habits, state.energyLevel, state.user.name, state.messages.length]);
+
+  useEffect(() => {
+    // Proactive "Drift Detection" and Mood Logic
+    const interval = setInterval(() => {
+      const now = new Date();
+      const hour = now.getHours();
+      
+      // 1. Detect missed morning habits if it's afternoon
+       if (hour >= 12) {
+         const missedMorning = state.habits.find(h => h.timeWindow === 'morning' && h.status === 'pending');
+         if (missedMorning && !state.messages.some((m: any) => m.text.includes(missedMorning.name))) {
+           addCoachMessage({
+             text: `It's already afternoon, and I noticed "${missedMorning.name}" is still pending. Shall we do a quick version now?`,
+             type: 'suggestion'
+           });
+           // Set mood to 'alert' when drift is detected
+           setState(prev => ({ ...prev, mood: 'alert' }));
+         }
+       }
+ 
+       // 2. Adjust calmness based on activity density
+       const totalTasks = state.intentions.length + state.habits.length;
+       const completedTasks = state.intentions.filter(i => i.completed).length + state.habits.filter(h => h.status === 'completed').length;
+       
+       if (completedTasks === totalTasks && totalTasks > 0) {
+         if (state.mood !== 'encouraging') {
+           setState(prev => ({ ...prev, mood: 'encouraging' }));
+         }
+       } else if ((state.energyLevel || 0) <= 3) {
+         if (state.mood !== 'calm') {
+           setState(prev => ({ ...prev, mood: 'calm' }));
+         }
+       }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [state.habits, state.intentions, state.energyLevel, state.mood]);
 
   const addIntention = (text: string) => {
     if (state.intentions.length >= 3) return;
@@ -195,20 +233,78 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setState(initialState);
   };
 
+  const processAgentCommand = (updates: any) => {
+    if (!updates) return;
+
+    setState(prev => {
+      let newState = { ...prev };
+
+      // Handle Energy Level
+      if (typeof updates.energyLevel === 'number') {
+        newState.energyLevel = updates.energyLevel;
+      }
+
+      // Handle Mood
+      if (updates.mood) {
+        newState.mood = updates.mood;
+      }
+
+      // Handle New Intentions
+      if (Array.isArray(updates.intentions)) {
+        const newIntentions: Intention[] = updates.intentions.map((text: string) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          text,
+          completed: false,
+          createdAt: Date.now(),
+        }));
+        newState.intentions = [...prev.intentions, ...newIntentions].slice(-3); // Keep max 3
+      }
+
+      // Handle New Habits
+      if (Array.isArray(updates.habits)) {
+        const newHabits: Habit[] = updates.habits.map((h: any) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          name: h.name,
+          streak: 0,
+          status: 'pending',
+          timeWindow: h.timeWindow || 'morning',
+        }));
+        newState.habits = [...prev.habits, ...newHabits];
+      }
+
+      // Handle Completions
+      if (Array.isArray(updates.completions)) {
+        updates.completions.forEach((term: string) => {
+          // Check intentions
+          newState.intentions = newState.intentions.map(i => 
+            i.text.toLowerCase().includes(term.toLowerCase()) ? { ...i, completed: true } : i
+          );
+          // Check habits
+          newState.habits = newState.habits.map(h => 
+            h.name.toLowerCase().includes(term.toLowerCase()) ? { ...h, status: 'completed', streak: h.streak + 1 } : h
+          );
+        });
+      }
+
+      return newState;
+    });
+  };
+
   return (
     <AppContext.Provider value={{ 
       ...state, 
       addIntention, 
       toggleIntention, 
-      updateHabitStatus,
-      addHabit,
+      updateHabitStatus, 
+      addHabit, 
       removeHabit, 
       addCoachMessage, 
-      respondToMessage,
+      respondToMessage, 
       setEnergyLevel,
       updateUser,
       setActiveView,
-      clearState
+      clearState,
+      processAgentCommand
     }}>
       {children}
     </AppContext.Provider>

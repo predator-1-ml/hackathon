@@ -37,6 +37,26 @@ export const FocusMode: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0a0a0b] text-white overflow-hidden relative">
+      {/* Decorative SVG Shapes for Focus Mode */}
+      <div className="absolute inset-0 pointer-events-none opacity-20">
+        <svg className="absolute -top-[5%] -right-[5%] w-[50%] h-[50%] text-indigo-900/40" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <path fill="currentColor" d="M35.6,-47.1C44.7,-38.4,49.8,-25.6,53.4,-11.8C57,2,59.1,16.8,54.7,29.1C50.2,41.4,39.3,51.1,26.5,56.7C13.8,62.3,-0.7,63.7,-14.9,60.6C-29.1,57.5,-42.9,49.8,-52.6,38.3C-62.3,26.8,-67.9,11.5,-66.2,-2.7C-64.4,-16.9,-55.4,-30,-44,-39.2C-32.6,-48.3,-18.8,-53.6,-4.5,-52.8C9.7,-52.1,26.5,-55.8,35.6,-47.1Z" transform="translate(100 100)" />
+        </svg>
+        <svg className="absolute -bottom-[10%] -left-[10%] w-[40%] h-[40%] text-violet-900/30" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <path fill="currentColor" d="M42.3,-58.2C54.9,-49.6,65.3,-37.8,70.1,-24.1C74.9,-10.3,74.1,5.3,68.4,18.9C62.7,32.5,52.2,44.1,39.3,51.8C26.5,59.5,11.3,63.3,-4,68.8C-19.3,74.3,-34.7,81.4,-47.2,76.5C-59.7,71.5,-69.3,54.6,-74.6,37.3C-79.8,20.1,-80.7,2.5,-76.8,-13.6C-72.9,-29.7,-64.1,-44.3,-51.4,-52.9C-38.6,-61.5,-22,-64,-5.4,-56.6C11.1,-49.1,29.7,-66.8,42.3,-58.2Z" transform="translate(100 100)" />
+        </svg>
+      </div>
+
+      {/* Global Pattern */}
+      <div className="absolute inset-0 opacity-[0.05] pointer-events-none">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <pattern id="focus-pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="0.5" fill="white" />
+          </pattern>
+          <rect width="100%" height="100%" fill="url(#focus-pattern)" />
+        </svg>
+      </div>
+
       {/* Dynamic Aura */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div 
