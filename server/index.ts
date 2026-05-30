@@ -97,7 +97,7 @@ CONSTRAINTS:
 
 You MUST respond with a JSON object in the following format:
 {
-  "text": "Brief coaching response (max 2 sentences)",
+  "text": "A structured summary of the deconstructed intent (e.g., 'Analyzing: 1 new task, energy drop detected')",
   "type": "suggestion" | "affirmation" | "check-in",
   "updates": {
     "intentions": ["Task strings"],
@@ -195,6 +195,49 @@ app.get('/api/analytics', async (req, res) => {
     res.json({ activity, habits, energyTrend });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch analytics' });
+  }
+});
+
+app.get('/api/predict', async (req, res) => {
+  try {
+    // Analyze recent energy and habit completion patterns
+    const recentActivity = await db.all('SELECT energy_level, mood, timestamp FROM activity_log ORDER BY timestamp DESC LIMIT 20');
+    const recentHabits = await db.all('SELECT habit_name, status, timestamp FROM habits_history ORDER BY timestamp DESC LIMIT 20');
+
+    const prompt = `
+      As a Predictive Productivity Coach, analyze these recent logs:
+      Energy/Mood: ${JSON.stringify(recentActivity)}
+      Habits: ${JSON.stringify(recentHabits)}
+
+      Identify one potential "drift" or pattern (e.g., "User misses morning habits when energy is below 4").
+      Provide a proactive suggestion to prevent this drift today.
+      
+      Respond with JSON:
+      {
+        "pattern": "string",
+        "suggestion": "string",
+        "confidence": number (0-1)
+      }
+    `;
+
+    if (!llm) {
+      return res.json({ 
+        pattern: "Low morning energy trend",
+        suggestion: "I noticed you've been starting slow. How about we swap your deep work for a 5-min movement habit today?",
+        confidence: 0.8
+      });
+    }
+
+    const completion = await llm.client.chat.completions.create({
+      model: llm.model,
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" }
+    });
+
+    const prediction = JSON.parse(completion.choices[0].message.content || '{}');
+    res.json(prediction);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to generate prediction' });
   }
 });
 

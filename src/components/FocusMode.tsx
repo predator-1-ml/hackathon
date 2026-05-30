@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, RotateCcw, Timer, Zap, ArrowLeft } from 'lucide-react';
+import { Play, Pause, RotateCcw, Timer, Zap, ArrowLeft, Bot } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { CoachVisual } from './CoachVisual';
 
 export const FocusMode: React.FC = () => {
+  const { intentions, setActiveView, addCoachMessage } = useAppContext();
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
-  const { intentions, setActiveView } = useAppContext();
+  const [isGhostActive, setIsGhostActive] = useState(false);
+  const lastActivityRef = useRef(Date.now());
   
   const currentIntention = intentions.find(i => !i.completed);
 
@@ -15,13 +18,38 @@ export const FocusMode: React.FC = () => {
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((time) => time - 1);
+        
+        // Ghost Agent Logic: Check for inactivity every 10 seconds
+        const inactiveTime = Date.now() - lastActivityRef.current;
+        if (inactiveTime > 15000) { // 15 seconds of simulated inactivity
+          setIsGhostActive(true);
+        } else {
+          setIsGhostActive(false);
+        }
       }, 1000);
     } else if (timeLeft === 0) {
       setIsActive(false);
       clearInterval(interval);
+      addCoachMessage({
+        text: "Deep work session complete. Your focus was legendary. Time for a tactical break.",
+        type: 'affirmation'
+      });
     }
     return () => clearInterval(interval);
   }, [isActive, timeLeft]);
+
+  useEffect(() => {
+    const handleActivity = () => {
+      lastActivityRef.current = Date.now();
+      setIsGhostActive(false);
+    };
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    return () => {
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+    };
+  }, []);
 
   const toggleTimer = () => setIsActive(!isActive);
   const resetTimer = () => {
@@ -37,6 +65,31 @@ export const FocusMode: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0a0a0b] text-white overflow-hidden relative">
+      {/* Ghost Agent Floating Presence */}
+      <AnimatePresence>
+        {isGhostActive && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5, y: 50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.5, y: -50 }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] flex flex-col items-center gap-6"
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full scale-150 animate-pulse" />
+              <CoachVisual mood="alert" />
+            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white/10 backdrop-blur-xl border border-white/20 px-8 py-4 rounded-2xl text-center"
+            >
+              <p className="text-sm font-bold text-indigo-300 uppercase tracking-widest mb-1">Agent Nudge</p>
+              <p className="text-lg font-black">Still in the flow?</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Decorative SVG Shapes for Focus Mode */}
       <div className="absolute inset-0 pointer-events-none opacity-20">
         <svg className="absolute -top-[5%] -right-[5%] w-[50%] h-[50%] text-indigo-900/40" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">

@@ -13,8 +13,13 @@ interface CommandAnalysisProps {
   onComplete: () => void;
 }
 
-export const CommandAnalysis: React.FC<CommandAnalysisProps> = ({ transcript, updates, onComplete }) => {
+export const CommandAnalysis: React.FC<CommandAnalysisProps & { onUpdateChanges: (updates: any) => void }> = ({ transcript, updates: initialUpdates, onComplete, onUpdateChanges }) => {
   const [phase, setPhase] = useState<'transcript' | 'thinking' | 'categorizing'>('transcript');
+  const [editableUpdates, setEditableUpdates] = useState<any>(initialUpdates);
+
+  useEffect(() => {
+    setEditableUpdates(initialUpdates);
+  }, [initialUpdates]);
 
   useEffect(() => {
     const transcriptTimer = setTimeout(() => setPhase('thinking'), 1500);
@@ -25,6 +30,23 @@ export const CommandAnalysis: React.FC<CommandAnalysisProps> = ({ transcript, up
       thinkingTimer && clearTimeout(thinkingTimer);
     };
   }, []);
+
+  const updateIntention = (index: number, val: string) => {
+    const newIntentions = [...(editableUpdates.intentions || [])];
+    newIntentions[index] = val;
+    setEditableUpdates({ ...editableUpdates, intentions: newIntentions });
+  };
+
+  const updateHabit = (index: number, val: string) => {
+    const newHabits = [...(editableUpdates.habits || [])];
+    newHabits[index] = { ...newHabits[index], name: val };
+    setEditableUpdates({ ...editableUpdates, habits: newHabits });
+  };
+
+  const handleApply = () => {
+    onUpdateChanges(editableUpdates);
+    onComplete();
+  };
 
   return (
     <motion.div
@@ -97,22 +119,51 @@ export const CommandAnalysis: React.FC<CommandAnalysisProps> = ({ transcript, up
               >
                 <div className="flex items-center gap-3 mb-8">
                   <div className="h-[1px] flex-1 bg-slate-100" />
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Actionable Intelligence</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Interactive Refinement</span>
                   <div className="h-[1px] flex-1 bg-slate-100" />
                 </div>
 
-                <div className="grid grid-cols-1 gap-4">
-                  {updates?.intentions?.map((text, i) => (
-                    <ResultItem key={i} icon={<Target className="w-5 h-5" />} label="New Intention" text={text} color="indigo" delay={0.1 * i} />
+                <div className="grid grid-cols-1 gap-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                  {editableUpdates?.intentions?.map((text: string, i: number) => (
+                    <ResultItem 
+                      key={i} 
+                      icon={<Target className="w-5 h-5" />} 
+                      label="New Intention" 
+                      text={text} 
+                      color="indigo" 
+                      delay={0.1 * i} 
+                      onChange={(val) => updateIntention(i, val)}
+                    />
                   ))}
-                  {updates?.habits?.map((h, i) => (
-                    <ResultItem key={i} icon={<Zap className="w-5 h-5" />} label="New Habit" text={h.name} color="amber" delay={0.3} />
+                  {editableUpdates?.habits?.map((h: any, i: number) => (
+                    <ResultItem 
+                      key={i} 
+                      icon={<Zap className="w-5 h-5" />} 
+                      label="New Habit" 
+                      text={h.name} 
+                      color="amber" 
+                      delay={0.3} 
+                      onChange={(val) => updateHabit(i, val)}
+                    />
                   ))}
-                  {updates?.energyLevel !== undefined && (
-                    <ResultItem icon={<Battery className="w-5 h-5" />} label="Energy Level" text={`${updates.energyLevel}/10`} color="emerald" delay={0.5} />
+                  {editableUpdates?.energyLevel !== undefined && (
+                    <ResultItem 
+                      icon={<Battery className="w-5 h-5" />} 
+                      label="Energy Level" 
+                      text={`${editableUpdates.energyLevel}/10`} 
+                      color="emerald" 
+                      delay={0.5} 
+                    />
                   )}
-                  {updates?.completions?.map((term, i) => (
-                    <ResultItem key={i} icon={<CheckCircle2 className="w-5 h-5" />} label="Completion" text={`Marked "${term}" as done`} color="blue" delay={0.7} />
+                  {editableUpdates?.completions?.map((term: string, i: number) => (
+                    <ResultItem 
+                      key={i} 
+                      icon={<CheckCircle2 className="w-5 h-5" />} 
+                      label="Completion" 
+                      text={term} 
+                      color="blue" 
+                      delay={0.7} 
+                    />
                   ))}
                 </div>
 
@@ -120,10 +171,10 @@ export const CommandAnalysis: React.FC<CommandAnalysisProps> = ({ transcript, up
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 1.2 }}
-                  onClick={onComplete}
+                  onClick={handleApply}
                   className="w-full mt-8 py-6 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase tracking-[0.3em] text-xs hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 active:scale-95"
                 >
-                  Apply to System
+                  Confirm System Update
                 </motion.button>
               </motion.div>
             )}
@@ -134,19 +185,28 @@ export const CommandAnalysis: React.FC<CommandAnalysisProps> = ({ transcript, up
   );
 };
 
-const ResultItem: React.FC<{ icon: React.ReactNode, label: string, text: string, color: string, delay: number }> = ({ icon, label, text, color, delay }) => (
+const ResultItem: React.FC<{ icon: React.ReactNode, label: string, text: string, color: string, delay: number, onChange?: (val: string) => void }> = ({ icon, label, text, color, delay, onChange }) => (
   <motion.div
     initial={{ x: -20, opacity: 0 }}
     animate={{ x: 0, opacity: 1 }}
     transition={{ delay }}
-    className={`flex items-center gap-5 p-5 bg-${color}-50/50 rounded-2xl border border-${color}-100/50`}
+    className={`flex items-center gap-5 p-5 bg-${color}-50/50 rounded-2xl border border-${color}-100/50 group/item hover:bg-${color}-50 hover:border-${color}-200 transition-all`}
   >
     <div className={`w-10 h-10 bg-${color}-500 rounded-xl flex items-center justify-center text-white shadow-md`}>
       {icon}
     </div>
-    <div>
+    <div className="flex-1">
       <span className={`text-[9px] font-black text-${color}-500 uppercase tracking-widest block mb-0.5`}>{label}</span>
-      <p className="text-sm font-bold text-slate-700">{text}</p>
+      {onChange ? (
+        <input 
+          type="text" 
+          value={text} 
+          onChange={(e) => onChange(e.target.value)}
+          className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-slate-700 w-full"
+        />
+      ) : (
+        <p className="text-sm font-bold text-slate-700">{text}</p>
+      )}
     </div>
   </motion.div>
 );

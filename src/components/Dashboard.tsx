@@ -25,12 +25,29 @@ export const Dashboard: React.FC = () => {
   const handleAnalysisComplete = () => {
     if (analysisState) {
       processAgentCommand(analysisState.updates);
+      
+      // Create a structured analysis summary for the stream
+      const { updates } = analysisState;
+      const summaries = [];
+      if (updates.intentions?.length) summaries.push(`${updates.intentions.length} intention${updates.intentions.length > 1 ? 's' : ''}`);
+      if (updates.habits?.length) summaries.push(`${updates.habits.length} habit${updates.habits.length > 1 ? 's' : ''}`);
+      if (updates.energyLevel !== undefined) summaries.push(`energy set to ${updates.energyLevel}/10`);
+      if (updates.completions?.length) summaries.push(`${updates.completions.length} task${updates.completions.length > 1 ? 's' : '' } done`);
+      
+      const analysisText = summaries.length > 0 
+        ? `Analyzed: ${summaries.join(', ')}.` 
+        : analysisState.responseText;
+
       addCoachMessage({
-        text: analysisState.responseText,
+        text: analysisText,
         type: analysisState.responseType as any
       });
       setAnalysisState(null);
     }
+  };
+
+  const handleUpdateChanges = (newUpdates: any) => {
+    setAnalysisState(prev => prev ? { ...prev, updates: newUpdates } : null);
   };
 
   return (
@@ -43,6 +60,7 @@ export const Dashboard: React.FC = () => {
             transcript={analysisState.transcript}
             updates={analysisState.updates}
             onComplete={handleAnalysisComplete}
+            onUpdateChanges={handleUpdateChanges}
           />
         )}
       </AnimatePresence>

@@ -1,9 +1,10 @@
 import React from 'react';
-import { CircleDashed, TrendingUp, Calendar as CalendarIcon, Award, Plus } from 'lucide-react';
+import { Trophy, TrendingUp, Calendar, Zap, Star, CircleDashed, Plus } from 'lucide-react';
 import { HabitTracker } from './HabitTracker';
 import { WeeklyCalendar } from './WeeklyCalendar';
 import { useAppContext } from '../context/AppContext';
 import { motion } from 'framer-motion';
+import { EnergyLandscape } from './EnergyLandscape';
 
 import { BackgroundVisual } from './BackgroundVisual';
 
@@ -24,33 +25,33 @@ export const HabitMastery: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         >
           <div className="flex items-center gap-3 mb-4">
-            <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-emerald-100">
-              Habit Mastery
-            </span>
-            <span className="w-1 h-1 bg-slate-300 rounded-full" />
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-              Performance Analytics
+            <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-amber-100">
+              Analytics Engine
             </span>
           </div>
           <h1 className="text-5xl font-black tracking-tight text-slate-900 mb-3">
-            Behavioral Rhythms
+            Habit Mastery
           </h1>
           <p className="text-lg text-slate-500 font-medium max-w-2xl leading-relaxed">
-            Master your routines to unlock peak performance. Your consistency defines your progress.
+            Your long-term performance and behavioral patterns.
           </p>
         </motion.div>
       </header>
 
-      <div className="max-w-6xl mx-auto space-y-10">
-        {/* Stats Row */}
+      <div className="max-w-6xl mx-auto space-y-10 relative z-10">
+        {/* Landscape Row */}
+        <section>
+          <EnergyLandscape />
+        </section>
+
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
             { label: 'Total Streaks', value: totalStreaks, icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-            { label: 'Best Streak', value: `${bestStreak} Days`, icon: Award, color: 'text-orange-600', bg: 'bg-orange-50' },
-            { label: 'Today\'s Rate', value: `${completionRate}%`, icon: CalendarIcon, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'Best Streak', value: `${bestStreak} Days`, icon: Trophy, color: 'text-orange-600', bg: 'bg-orange-50' },
+            { label: 'Today\'s Rate', value: `${completionRate}%`, icon: Calendar, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}

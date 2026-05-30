@@ -111,35 +111,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const hour = now.getHours();
       
       // 1. Detect missed morning habits if it's afternoon
-       if (hour >= 12) {
-         const missedMorning = state.habits.find(h => h.timeWindow === 'morning' && h.status === 'pending');
-         if (missedMorning && !state.messages.some((m: any) => m.text.includes(missedMorning.name))) {
-           addCoachMessage({
-             text: `It's already afternoon, and I noticed "${missedMorning.name}" is still pending. Shall we do a quick version now?`,
-             type: 'suggestion'
-           });
-           // Set mood to 'alert' when drift is detected
-           setState(prev => ({ ...prev, mood: 'alert' }));
-         }
-       }
- 
-       // 2. Adjust calmness based on activity density
-       const totalTasks = state.intentions.length + state.habits.length;
-       const completedTasks = state.intentions.filter(i => i.completed).length + state.habits.filter(h => h.status === 'completed').length;
-       
-       if (completedTasks === totalTasks && totalTasks > 0) {
-         if (state.mood !== 'encouraging') {
-           setState(prev => ({ ...prev, mood: 'encouraging' }));
-         }
-       } else if ((state.energyLevel || 0) <= 3) {
-         if (state.mood !== 'calm') {
-           setState(prev => ({ ...prev, mood: 'calm' }));
-         }
-       }
+        if (hour >= 12) {
+          const missedMorning = state.habits.find(h => h.timeWindow === 'morning' && h.status === 'pending');
+          if (missedMorning && !state.messages.some((m: any) => m.text.includes(missedMorning.name))) {
+            addCoachMessage({
+              text: `It's already afternoon, and I noticed "${missedMorning.name}" is still pending. Shall we do a quick version now?`,
+              type: 'suggestion'
+            });
+            // Set mood to 'alert' when drift is detected
+            setState(prev => ({ ...prev, mood: 'alert' }));
+          }
+        }
+  
+        // 2. Adjust calmness based on activity density
+        const totalTasks = state.intentions.length + state.habits.length;
+        const completedTasks = state.intentions.filter(i => i.completed).length + state.habits.filter(h => h.status === 'completed').length;
+        
+        if (completedTasks === totalTasks && totalTasks > 0) {
+          if (state.mood !== 'encouraging') {
+            setState(prev => ({ ...prev, mood: 'encouraging' }));
+          }
+        } else if ((state.energyLevel || 0) <= 3) {
+          if (state.mood !== 'calm') {
+            setState(prev => ({ ...prev, mood: 'calm' }));
+          }
+        }
     }, 60000); // Check every minute
 
     return () => clearInterval(interval);
   }, [state.habits, state.intentions, state.energyLevel, state.mood]);
+
+  useEffect(() => {
+    // Predictive Intelligence: Fetch trends from backend every 5 minutes
+    const fetchPrediction = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/predict');
+        const data = await response.json();
+        
+        if (data.confidence > 0.7 && !state.messages.some((m: any) => m.text === data.suggestion)) {
+          addCoachMessage({
+            text: data.suggestion,
+            type: 'suggestion'
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch prediction:', error);
+      }
+    };
+
+    const interval = setInterval(fetchPrediction, 300000); // Every 5 minutes
+    fetchPrediction(); // Initial call
+
+    return () => clearInterval(interval);
+  }, [state.messages.length]);
 
   const addIntention = (text: string) => {
     if (state.intentions.length >= 3) return;
