@@ -7,6 +7,11 @@ Agentic OS is not a tracker; it's a **Living Workspace**. It moves away from "Tr
 
 ---
 
+## 🤝 Built With Trae
+This project was developed in collaboration with **Trae**, the AI-powered evolutionary code editor. Every feature, from the Llama 3 integration to the SVG design system, was crafted through an agentic pair-programming flow.
+
+---
+
 ## ✨ Key Features
 
 ### 🧠 Deep Thinking Voice Ingestion
