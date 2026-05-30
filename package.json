@@ -1,0 +1,49 @@
+{
+  "name": "hackathon",
+  "version": "1.0.0",
+  "description": "Personal hackathon project by [Ajeya Krishna](https://github.com/predator-1-ml).",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "vite",
+    "server": "ts-node-dev --respawn server/index.ts",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/predator-1-ml/hackathon.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/predator-1-ml/hackathon/issues"
+  },
+  "homepage": "https://github.com/predator-1-ml/hackathon#readme",
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "autoprefixer": "^10.5.0",
+    "nodemon": "^3.1.14",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^3.4.19",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.14"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^1.17.0",
+    "openai": "^6.39.1",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "tailwind-merge": "^3.6.0"
+  }
+}
